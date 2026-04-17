@@ -1,5 +1,5 @@
 // Centralized API service — all calls go through here
-const BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+const BASE = import.meta.env.VITE_API_URL;
 
 export const api = {
   async getStock(ticker) {
