@@ -1,16 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../services/api';
 
 const ChatBox = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { sender: 'ai', text: "Hello! I am StockSense AI. Ask me about Indian stocks, like 'TCS price' or 'Is Reliance bullish?'" }
+    { sender: 'ai', text: "Hello! I am StockSense AI. Ask me about Indian stocks — try 'TCS price', 'Best Tamil Nadu stocks', or 'Is Reliance bullish?'" }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
   const endOfMessagesRef = useRef(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,16 +23,11 @@ const ChatBox = () => {
     setInput('');
     setLoading(true);
 
-    try {
-      const res = await axios.post(`${API_URL}/api/chat`, { message: userMsg });
-      setMessages(prev => [...prev, { sender: 'ai', text: res.data.reply }]);
-    } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { sender: 'ai', text: "I'm having trouble connecting right now." }]);
-    } finally {
-      setLoading(false);
-    }
+    const reply = await api.chat(userMsg);
+    setMessages(prev => [...prev, { sender: 'ai', text: reply }]);
+    setLoading(false);
   };
+
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">

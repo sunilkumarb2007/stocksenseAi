@@ -1,28 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../services/api';
 
 const Dashboard = () => {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
   useEffect(() => {
     const fetchPredictions = async () => {
-      try {
-        const tickers = ['AAPL', 'SNOW', 'MSFT'];
-        const results = await Promise.all(
-          tickers.map(ticker => axios.get(`${API_URL}/api/predict/${ticker}`))
-        );
-        setPredictions(results.map(res => res.data));
-        setLoading(false);
-      } catch (err) {
-        console.error("Failed to fetch predictions", err);
-        setLoading(false);
-      }
+      const tickers = ['AAPL', 'TCS', 'RELIANCE'];
+      const results = await Promise.all(tickers.map(t => api.getPredict(t)));
+      setPredictions(results.filter(Boolean));
+      setLoading(false);
     };
     fetchPredictions();
-  }, [API_URL]);
+  }, []);
 
   return (
     <div className="p-8 bg-surface min-h-screen">
@@ -119,9 +110,9 @@ const Dashboard = () => {
               </div>
               <div className="space-y-1 mt-1">
                 {[
-                  { ticker: 'SMCI', name: 'Super Micro', type: 'Hardware', price: '$1,074.34', chg: '+12.4%', vol: '42.1', c: 'text-secondary' },
-                  { ticker: 'ARM', name: 'Arm Holdings', type: 'Semiconductors', price: '$142.10', chg: '+8.2%', vol: '28.5', c: 'text-secondary' },
-                  { ticker: 'TSLA', name: 'Tesla Inc.', type: 'Automotive', price: '$175.22', chg: '-4.5%', vol: '115.2', c: 'text-tertiary' }
+                  { ticker: 'TCS',      name: 'Tata Consultancy', type: 'IT Services',  price: '₹3,650.00', chg: '+1.1%', vol: '3.2', c: 'text-secondary' },
+                  { ticker: 'RELIANCE', name: 'Reliance Indust.',  type: 'Conglomerate', price: '₹2,905.00', chg: '+0.8%', vol: '8.5', c: 'text-secondary' },
+                  { ticker: 'TSLA',     name: 'Tesla Inc.',        type: 'Automotive',   price: '₹14,543', chg: '-2.1%',  vol: '115.2', c: 'text-tertiary' }
                 ].map((item) => (
                   <div key={item.ticker} className="grid grid-cols-5 gap-4 py-3 px-4 bg-surface hover:bg-surface-container-lowest transition-colors rounded items-center group cursor-pointer">
                     <div className="col-span-2 flex items-center gap-3">
