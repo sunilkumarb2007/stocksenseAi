@@ -88,20 +88,26 @@ def build_stock(ticker: str) -> dict:
 
 
 # ── GEMINI via REST (no SDK — stable on Render) ───────────────────────────────
-def gemini(prompt: str) -> str | None:
+def gemini(prompt: str):
     if not GOOGLE_API_KEY:
-        return None
+        return "API key missing"
+
     try:
-        url = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"gemini-2.0-flash:generateContent?key={GOOGLE_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
+
+        response = requests.post(
+            url,
+            json={
+                "contents": [{"parts": [{"text": prompt}]}]
+            },
+            timeout=10
         )
-        r = requests.post(url, json={"contents":[{"parts":[{"text":prompt}]}]}, timeout=20)
-        r.raise_for_status()
-        return r.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+        data = response.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+
     except Exception as e:
-        print(f"Gemini error: {e}")
-        return None
+        return f"Error: {str(e)}"
 
 
 # ── IN-MEMORY WATCHLIST ───────────────────────────────────────────────────────
@@ -218,69 +224,6 @@ class ChatRequest(BaseModel):
     message: str
 
 @app.post("/api/chat/")
-def chat(req: ChatRequest):
-    msg = req.message.lower().strip()
-
-    # ── Tamil Nadu stocks ──────────────────────────────────────────────────
-    if any(w in msg for w in ["tamilnadu","tamil","chennai","tn stock","tamil nadu"]):
-        lines = "\n".join(
-            [f"• {STOCKS[t]['name']} ({t}) – ₹{inr(STOCKS[t]['usd']):,.2f}  [{STOCKS[t]['sector']}]"
-             for t in TN_STOCKS]
-        )
-        base = f"📍 Top Tamil Nadu Listed Companies (BSE/NSE):\n\n{lines}"
-        ai = gemini(
-            "You are StockSense AI. The user asked about Tamil Nadu stocks.\n"
-            "Give a concise 3-sentence investment insight about Tamil Nadu-based NSE/BSE "
-            "listed companies like Ramco Cements, CPCL, TNPL, CG Power, La Opala. "
-            "Mention fundamentals + risk. Use ₹ INR values. Be professional."
-        )
-        return {"reply": base + ("\n\n🤖 AI Insight:\n" + ai if ai else "")}
-
-    # ── Known stock lookup ─────────────────────────────────────────────────
-    found = next((KNOWN_MAP[k] for k in KNOWN_MAP if k in msg), None)
-
-    if found or any(w in msg for w in ["price","stock","invest","buy","sell","bullish","bearish"]):
-        sym = found or "TCS"
-        d   = build_stock(sym)
-        pred = predict(sym)
-
-        base = (
-            f"📊 {sym} – {d['company_name']}\n"
-            f"💰 Price: {d['current_price_inr']}\n"
-            f"📈 Trend: {pred['trend']} | Confidence: {pred['confidence']}%\n"
-            f"🏢 Sector: {d['sector']} | Exchange: {d['exchange']}"
-        )
-
-        ai = gemini(
-            f"You are StockSense AI, an expert in Indian (NSE/BSE) and global stock markets.\n"
-            f"Stock: {sym} ({d['company_name']})\n"
-            f"Current Price: {d['current_price_inr']}\n"
-            f"AI Trend Signal: {pred['trend']} ({pred['confidence']}% confidence)\n\n"
-            f"User asked: {req.message}\n\n"
-            "Give a 3-4 sentence professional analysis covering: trend reasoning, key risk, "
-            "and one fundamental factor. Use ₹ INR for Indian stocks. "
-            "Do NOT give direct buy/sell financial advice."
-        )
-        return {"reply": base + ("\n\n🤖 AI Analysis:\n" + ai if ai else "")}
-
-    # ── General AI query ──────────────────────────────────────────────────
-    system = (
-        "You are StockSense AI — an expert financial assistant specializing in Indian (NSE/BSE) "
-        "and global stock markets. Format your response clearly with bullet points where helpful. "
-        "Always use ₹ INR for Indian stocks. Give educational market insights. "
-        "Do NOT give direct financial advice."
-    )
-    ai = gemini(f"{system}\n\nUser: {req.message}")
-    if ai:
-        return {"reply": ai}
-
-    return {
-        "reply": (
-            "👋 I'm StockSense AI! Ask me:\n"
-            "• *TCS price* → ₹ price + AI analysis\n"
-            "• *Best Tamil Nadu stocks* → TN company list\n"
-            "• *Is Reliance bullish?* → trend analysis\n"
-            "• *Investment plan ₹50,000* → Gemini advice\n\n"
-            "_(Set GOOGLE_API_KEY in Render env for full AI responses)_"
-        )
-    }
+async def chat(req: ChatRequest):
+    reply = gemini(f"You are Indian stock AI. Answer in ₹ INR.\nUser: {req.message}")
+    return {"reply": reply}
