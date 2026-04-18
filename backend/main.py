@@ -93,7 +93,7 @@ def gemini(prompt: str):
         return "API key missing"
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_API_KEY}"
 
         response = requests.post(
             url,
@@ -236,14 +236,15 @@ class ChatRequest(BaseModel):
 @app.post("/api/chat/")
 async def chat(req: ChatRequest):
     prompt = f"""
-You are a helpful Indian stock market assistant.
+You are StockSense AI, a helpful Indian stock market assistant.
 
-Answer clearly with:
-- ₹ INR values
+If the user greets you (e.g. "hi", "hello"), respond politely and introduce yourself as StockSense AI without giving investment advice.
+If the user asks about stocks or the market, answer clearly with:
+- Current context and ₹ INR values
 - Short explanation
-- Suggest BUY / SELL / HOLD
+- A basic trend outlook (e.g. Bullish / Bearish / Neutral) without providing direct financial advice.
 
-User question: {req.message}
+User message: {req.message}
 """
 
     reply = gemini(prompt)
