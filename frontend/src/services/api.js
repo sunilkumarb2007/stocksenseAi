@@ -61,7 +61,7 @@ export const api = {
       return data.reply || "AI server issue. Please try again.";
     } catch (e) {
       console.error("chat:", e);
-      return "Unable to reach AI server. Check your connection.";
+      return "AI is taking longer than usual... please wait ⏳";
     }
   },
 };

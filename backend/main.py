@@ -92,32 +92,33 @@ def gemini(prompt: str):
     if not GOOGLE_API_KEY:
         return "API key missing"
 
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_API_KEY}"
 
-        response = requests.post(
-            url,
-            headers={"Content-Type": "application/json"},
-            json={
-                "contents": [{"parts": [{"text": prompt}]}]
-            },
-            timeout=10
-        )
+    for _ in range(2):  # retry 2 times
+        try:
+            response = requests.post(
+                url,
+                headers={"Content-Type": "application/json"},
+                json={
+                    "contents": [{"parts": [{"text": prompt}]}]
+                },
+                timeout=30
+            )
 
-        data = response.json()
-        print("Gemini raw:", data)
+            data = response.json()
+            print("Gemini raw:", data)
 
-        # ✅ SAFE PARSING
-        if "candidates" in data and len(data["candidates"]) > 0:
-            parts = data["candidates"][0].get("content", {}).get("parts", [])
-            if len(parts) > 0:
-                return parts[0].get("text", "No response")
+            # ✅ SAFE PARSING
+            if "candidates" in data and len(data["candidates"]) > 0:
+                parts = data["candidates"][0].get("content", {}).get("parts", [])
+                if len(parts) > 0:
+                    return parts[0].get("text", "No response")
 
-        # fallback
-        return "AI couldn't generate response. Try again."
-
-    except Exception as e:
-        return f"Error: {str(e)}"
+        except Exception as e:
+            print(f"Gemini API error (retrying): {e}")
+            continue
+            
+    return "AI is busy right now. Try again in a few seconds."
 
 
 # ── IN-MEMORY WATCHLIST ───────────────────────────────────────────────────────
